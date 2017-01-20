@@ -341,7 +341,7 @@ class Thread extends VerySimpleModel {
 
         case 'A': # System administrator
         case 'S': # Staff member (agent)
-            $vars['thread-type'] = 'N';
+            $vars['thread-type'] = 'R';
             $vars['staffId'] = $mailinfo['staffId'];
             if ($vars['staffId'])
                 $vars['poster'] = Staff::lookup($mailinfo['staffId']);
@@ -409,6 +409,16 @@ class Thread extends VerySimpleModel {
                 return $this->addMessage($vars, $errors);
             break;
 
+        case 'R':
+            $vars['response'] = $body;
+
+            if ($object instanceof Threadable) {
+                return $object->postThreadEntry('R', $vars);
+			} elseif ($this instanceof ObjectThread) {
+                return $this->addResponse($vars, $errors);
+			}
+            break;
+			
         case 'N':
             $vars['note'] = $body;
 
