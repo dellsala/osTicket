@@ -1226,18 +1226,29 @@ implements TemplateVariable {
                 // (Try not to match closing punctuation (`]`) in [#12345])
                 && preg_match("/#((\p{P}*[^\p{C}\p{Z}\p{P}]+)+)/u", $subject, $match)
                 //Lookup by ticket number
-                && ($ticket = Ticket::lookupByNumber($match[1]))
-                //Lookup the user using the email address
-                && ($user = User::lookup(array('emails__address' => $mailinfo['email'])))) {
-            //We have a valid ticket and user
-            if ($ticket->getUserId() == $user->getId() //owner
-                    ||  ($c = Collaborator::lookup( // check if collaborator
-                            array('user_id' => $user->getId(),
-                                  'thread_id' => $ticket->getThreadId())))) {
-
-                $mailinfo['userId'] = $user->getId();
+                && ($ticket = Ticket::lookupByNumber($match[1]))) {
+            
+            if ($staff = Staff::lookup(array('email' => $mailinfo['email']))) {
+                
+                // Email is from a staff member.
+                // @todo: Check to see if that staff member belongs to the department the ticket is assigned to.
+                $mailinfo['userClass'] = 'S';
+                $mailinfo['staffId'] = $staff->getId();
                 return $ticket->getLastMessage();
+                
+            } else if ($user = User::lookup(array('emails__address' => $mailinfo['email']))) {
+                
+                // Email is from a user.
+                if ($ticket->getUserId() == $user->getId() //owner
+                        ||  ($c = Collaborator::lookup( // check if collaborator
+                                array('user_id' => $user->getId(),
+                                      'thread_id' => $ticket->getThreadId())))) {
+                    $mailinfo['userId'] = $user->getId();
+                    return $ticket->getLastMessage();
+                }
+                
             }
+            
         }
 
         return null;
